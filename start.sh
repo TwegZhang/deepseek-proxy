@@ -9,7 +9,7 @@ deepseek-proxy — 轻量级 DeepSeek Anthropic API 代理
   ./start.sh                   开发模式（tsx watch，HTTP）
   ./start.sh run               单次启动（不 watch）
   ./start.sh prod              生产模式（编译后启动，HTTP）
-  ./start.sh https             生产模式 + HTTPS（自动生成自签名证书）
+  ./start.sh https             生产模式 + HTTPS（mkcert 或自签名）
   ./start.sh --config FILE     指定配置文件
   ./start.sh help              显示帮助
 
@@ -19,10 +19,42 @@ deepseek-proxy — 轻量级 DeepSeek Anthropic API 代理
 
 环境变量:
   DP_CONFIG_PATH   配置文件路径
-  DP_HTTPS_CERT    HTTPS 证书路径
-  DP_HTTPS_KEY     HTTPS 私钥路径
+  DP_HTTPS_CERT    HTTPS 证书路径（手动指定）
+  DP_HTTPS_KEY     HTTPS 私钥路径（手动指定）
   .env             自动加载，见 .env.example
 EOF
+}
+
+gen_certs() {
+  local CERT_DIR="${1:-./certs}"
+  mkdir -p "$CERT_DIR"
+  local CERT="$CERT_DIR/server.crt"
+  local KEY="$CERT_DIR/server.key"
+
+  if [ -f "$CERT" ] && [ -f "$KEY" ]; then
+    return 0
+  fi
+
+  LOCAL_IP=$(ifconfig 2>/dev/null | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}' | head -1)
+  [ -z "$LOCAL_IP" ] && LOCAL_IP="127.0.0.1"
+
+  if command -v mkcert &>/dev/null; then
+    echo "使用 mkcert 生成可信证书 (IP: $LOCAL_IP)..."
+    mkcert -cert-file "$CERT" -key-file "$KEY" \
+      localhost 127.0.0.1 "$LOCAL_IP" 2>&1
+  else
+    echo "mkcert 未安装，使用 openssl 生成自签名证书 (IP: $LOCAL_IP)..."
+    echo "提示: brew install mkcert && mkcert -install 可生成系统信任的证书"
+    openssl req -x509 -nodes -days 365 \
+      -subj "/CN=$LOCAL_IP" \
+      -addext "subjectAltName=IP:$LOCAL_IP,IP:127.0.0.1,DNS:localhost" \
+      -newkey rsa:2048 \
+      -keyout "$KEY" \
+      -out "$CERT" 2>/dev/null
+  fi
+
+  export DP_HTTPS_CERT="$CERT"
+  export DP_HTTPS_KEY="$KEY"
 }
 
 # 自检测：部署目录无 src/ 但 dist/ 存在 → 生产模式
@@ -30,19 +62,7 @@ if [ ! -d "src" ] && [ -d "dist" ]; then
   case "${1:-}" in
     help|--help|-h) show_help; exit 0 ;;
     https)
-      if [ ! -f "certs/server.crt" ] || [ ! -f "certs/server.key" ]; then
-        LOCAL_IP=$(ifconfig 2>/dev/null | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}' | head -1 || echo "127.0.0.1")
-        echo "生成自签名证书 (IP: $LOCAL_IP)..."
-        mkdir -p certs
-        openssl req -x509 -nodes -days 365 \
-          -subj "/CN=$LOCAL_IP" \
-          -addext "subjectAltName=IP:$LOCAL_IP,IP:127.0.0.1,DNS:localhost" \
-          -newkey rsa:2048 \
-          -keyout certs/server.key \
-          -out certs/server.crt 2>/dev/null
-      fi
-      export DP_HTTPS_CERT="certs/server.crt"
-      export DP_HTTPS_KEY="certs/server.key"
+      gen_certs certs
       echo "=== 生产模式 (HTTPS) ==="
       node dist/index.js ;;
     *) echo "=== 生产模式 ==="; node dist/index.js ;;
@@ -72,24 +92,7 @@ case "${1:-}" in
       echo "dist/ 不存在，正在编译..."
       npx tsc
     fi
-    # Generate self-signed certificate
-    CERT_DIR="./certs"
-    mkdir -p "$CERT_DIR"
-    CERT="$CERT_DIR/server.crt"
-    KEY="$CERT_DIR/server.key"
-    if [ ! -f "$CERT" ] || [ ! -f "$KEY" ]; then
-      LOCAL_IP=$(ifconfig 2>/dev/null | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}' | head -1 || echo "127.0.0.1")
-      echo "生成自签名证书 (IP: $LOCAL_IP)..."
-      openssl req -x509 -nodes -days 365 \
-        -subj "/CN=$LOCAL_IP" \
-        -addext "subjectAltName=IP:$LOCAL_IP,IP:127.0.0.1,DNS:localhost" \
-        -newkey rsa:2048 \
-        -keyout "$KEY" \
-        -out "$CERT" 2>/dev/null
-      echo "证书已生成: $CERT"
-    fi
-    export DP_HTTPS_CERT="$CERT"
-    export DP_HTTPS_KEY="$KEY"
+    gen_certs certs
     echo "=== 生产模式 (HTTPS) ==="
     node dist/index.js
     ;;
