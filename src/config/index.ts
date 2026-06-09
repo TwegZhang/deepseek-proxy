@@ -34,7 +34,6 @@ function applyEnvOverrides(raw: Record<string, unknown>): Record<string, unknown
 
   if (process.env.DP_DEEPSEEK_API_KEY) setNested("providers.deepseek", "api_key", process.env.DP_DEEPSEEK_API_KEY);
   if (process.env.DP_PROXY_API_KEY) setNested("auth", "proxy_key", process.env.DP_PROXY_API_KEY);
-  if (process.env.DP_SEARCH_API_KEY) setNested("plugins.search", "api_key", process.env.DP_SEARCH_API_KEY);
   if (process.env.LOG_LEVEL) setNested("logging", "level", process.env.LOG_LEVEL);
   if (process.env.PORT) setNested("server", "port", parseInt(process.env.PORT, 10));
 
