@@ -6,9 +6,10 @@ show_help() {
 deepseek-proxy — 轻量级 DeepSeek Anthropic API 代理
 
 用法:
-  ./start.sh                   开发模式（tsx watch，文件变更自动重启）
+  ./start.sh                   开发模式（tsx watch，HTTP）
   ./start.sh run               单次启动（不 watch）
-  ./start.sh prod              生产模式（编译后启动）
+  ./start.sh prod              生产模式（编译后启动，HTTP）
+  ./start.sh https             生产模式 + HTTPS（自动生成自签名证书）
   ./start.sh --config FILE     指定配置文件
   ./start.sh help              显示帮助
 
@@ -18,6 +19,8 @@ deepseek-proxy — 轻量级 DeepSeek Anthropic API 代理
 
 环境变量:
   DP_CONFIG_PATH   配置文件路径
+  DP_HTTPS_CERT    HTTPS 证书路径
+  DP_HTTPS_KEY     HTTPS 私钥路径
   .env             自动加载，见 .env.example
 EOF
 }
@@ -26,7 +29,17 @@ EOF
 if [ ! -d "src" ] && [ -d "dist" ]; then
   case "${1:-}" in
     help|--help|-h) show_help; exit 0 ;;
-    *) echo "=== 生产模式 (部署环境) ==="; node dist/index.js ;;
+    https)
+      if [ -d "certs" ] && [ -f "certs/server.crt" ] && [ -f "certs/server.key" ]; then
+        export DP_HTTPS_CERT="certs/server.crt"
+        export DP_HTTPS_KEY="certs/server.key"
+        echo "=== 生产模式 (HTTPS) ==="
+      else
+        echo "certs/ 不存在，先运行: cd .. && ./start.sh https"
+        exit 1
+      fi
+      node dist/index.js ;;
+    *) echo "=== 生产模式 ==="; node dist/index.js ;;
   esac
   exit 0
 fi
@@ -46,6 +59,32 @@ case "${1:-}" in
       exit 1
     fi
     echo "=== 生产模式 ==="
+    node dist/index.js
+    ;;
+  https)
+    if [ ! -d "dist" ]; then
+      echo "dist/ 不存在，正在编译..."
+      npx tsc
+    fi
+    # Generate self-signed certificate
+    CERT_DIR="./certs"
+    mkdir -p "$CERT_DIR"
+    CERT="$CERT_DIR/server.crt"
+    KEY="$CERT_DIR/server.key"
+    if [ ! -f "$CERT" ] || [ ! -f "$KEY" ]; then
+      LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "127.0.0.1")
+      echo "生成自签名证书 (IP: $LOCAL_IP)..."
+      openssl req -x509 -nodes -days 365 \
+        -subj "/CN=$LOCAL_IP" \
+        -addext "subjectAltName=IP:$LOCAL_IP,IP:127.0.0.1,DNS:localhost" \
+        -newkey rsa:2048 \
+        -keyout "$KEY" \
+        -out "$CERT" 2>/dev/null
+      echo "证书已生成: $CERT"
+    fi
+    export DP_HTTPS_CERT="$CERT"
+    export DP_HTTPS_KEY="$KEY"
+    echo "=== 生产模式 (HTTPS) ==="
     node dist/index.js
     ;;
   --config)

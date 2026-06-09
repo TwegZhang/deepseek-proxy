@@ -1,3 +1,5 @@
+import fs from "fs";
+import https from "https";
 import { loadConfig } from "./config";
 import { createLogger } from "./utils/logger";
 import { createApp } from "./app";
@@ -55,10 +57,24 @@ async function main() {
   const app = createApp({ config, logger, provider, pluginEngine });
 
   const { port, host } = config.server;
-  app.listen(port, host, () => {
-    logger.info({ port, host }, "deepseek-proxy ready");
-    logger.info({ models: Object.keys(config.model_mapping) }, "Model mapping active");
-  });
+
+  // HTTPS mode: DP_HTTPS_CERT + DP_HTTPS_KEY env vars
+  const certPath = process.env.DP_HTTPS_CERT;
+  const keyPath = process.env.DP_HTTPS_KEY;
+
+  if (certPath && keyPath && fs.existsSync(certPath) && fs.existsSync(keyPath)) {
+    const cert = fs.readFileSync(certPath);
+    const key = fs.readFileSync(keyPath);
+    https.createServer({ cert, key }, app).listen(port, host, () => {
+      logger.info({ port, host, certPath }, "deepseek-proxy ready (HTTPS)");
+      logger.info({ models: Object.keys(config.model_mapping) }, "Model mapping active");
+    });
+  } else {
+    app.listen(port, host, () => {
+      logger.info({ port, host }, "deepseek-proxy ready (HTTP)");
+      logger.info({ models: Object.keys(config.model_mapping) }, "Model mapping active");
+    });
+  }
 }
 
 main().catch((err) => {
