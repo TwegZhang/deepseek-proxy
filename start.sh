@@ -51,21 +51,20 @@ gen_certs() {
     return 0
   fi
 
-  # Local dev: mkcert or self-signed
-  LOCAL_IP=$(ifconfig 2>/dev/null | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}' | head -1)
-  [ -z "$LOCAL_IP" ] && LOCAL_IP="127.0.0.1"
+  # Local dev: self-signed + optional system trust
+  echo "生成自签名证书 (localhost)..."
+  openssl req -x509 -nodes -days 365 \
+    -subj "/CN=localhost" \
+    -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" \
+    -newkey rsa:2048 \
+    -keyout "$KEY" -out "$CERT" 2>/dev/null
 
-  if command -v mkcert &>/dev/null; then
-    echo "使用 mkcert ($LOCAL_IP)..."
-    mkcert -cert-file "$CERT" -key-file "$KEY" localhost 127.0.0.1 "$LOCAL_IP" 2>&1
-  else
-    echo "自签名证书 ($LOCAL_IP)..."
-    echo "提示: brew install mkcert && mkcert -install"
-    openssl req -x509 -nodes -days 365 \
-      -subj "/CN=$LOCAL_IP" \
-      -addext "subjectAltName=IP:$LOCAL_IP,IP:127.0.0.1,DNS:localhost" \
-      -newkey rsa:2048 \
-      -keyout "$KEY" -out "$CERT" 2>/dev/null
+  # Auto-trust on macOS
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    sudo security add-trusted-cert -d -r trustRoot \
+      -k /Library/Keychains/System.keychain "$CERT" 2>/dev/null && \
+    echo "证书已信任（需 sudo 确认）" || \
+    echo "跳过系统信任，Claude Desktop 将无法连接。手动信任：sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain $CERT"
   fi
 
   export DP_HTTPS_CERT="$CERT"
