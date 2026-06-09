@@ -26,18 +26,27 @@ async function main() {
 
   const pluginEngine = new PluginEngine(logger);
 
-  if (config.plugins.vision.enabled) {
+  const visionEnabled = process.env.DP_VISION_ENABLED !== undefined
+    ? process.env.DP_VISION_ENABLED === "true"
+    : config.plugins.vision.enabled;
+
+  if (visionEnabled) {
     if (process.env.DP_VISION_BASE_URL && process.env.DP_VISION_API_KEY) {
       pluginEngine.register(new VisionPlugin(logger));
     } else {
-      logger.warn("Vision plugin enabled but DP_VISION_BASE_URL or DP_VISION_API_KEY not set — skipping");
+      logger.warn("Vision enabled but DP_VISION_BASE_URL or DP_VISION_API_KEY not set — skipping");
     }
   }
-  if (config.plugins.search.enabled) {
+
+  const searchEnabled = process.env.DP_SEARCH_ENABLED !== undefined
+    ? process.env.DP_SEARCH_ENABLED === "true"
+    : config.plugins.search.enabled;
+
+  if (searchEnabled) {
     if (process.env.DP_SEARCH_API_KEY) {
       pluginEngine.register(new SearchPlugin(logger));
     } else {
-      logger.warn("Search plugin enabled but DP_SEARCH_API_KEY not set — skipping");
+      logger.warn("Search enabled but DP_SEARCH_API_KEY not set — skipping");
     }
   }
 
