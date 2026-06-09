@@ -1,0 +1,55 @@
+# deepseek-proxy 默认配置
+# 敏感信息（API Key 等）请通过环境变量配置，见 .env.example
+
+server:
+  port: 3000
+  host: "0.0.0.0"
+
+# 认证 — 单 Key 模式（设置环境变量 DP_PROXY_API_KEY 即可）
+auth:
+  # 多 Key 模式（可选），key_hash 用 bcrypt
+  keys: []
+
+# 模型名称双向翻译表
+model_mapping:
+  "claude-opus-4-20250514":
+    provider: deepseek
+    model: deepseek-v4-pro
+  "claude-sonnet-4-20250514":
+    provider: deepseek
+    model: deepseek-v4-flash
+  "claude-haiku-4-5-20251001":
+    provider: deepseek
+    model: deepseek-v4-flash
+  default:
+    provider: deepseek
+    model: deepseek-v4-flash
+
+# 速率限制
+rate_limit:
+  enabled: true
+  requests_per_minute: 60
+  tokens_per_minute: 100000
+  concurrency: 10
+
+# 供应商配置
+providers:
+  deepseek:
+    base_url: "https://api.deepseek.com/anthropic"
+    timeout_ms: 120000
+
+# 插件配置
+plugins:
+  vision:
+    enabled: false
+    provider: openai
+    openai:
+      model: gpt-4o
+      max_tokens: 512
+  search:
+    enabled: false
+    provider: tavily
+
+# 日志
+logging:
+  level: info
