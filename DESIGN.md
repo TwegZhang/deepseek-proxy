@@ -26,6 +26,7 @@ deepseek-proxy 是一个轻量级代理，位于客户端（Claude Code / Claude
 │  → modelTranslate(上游) → requestTransform         │
 │  → plugin:vision (图片→文字)                        │
 │  → proxyRouter → DeepSeekProvider.call()           │
+│  → plugin:search (拦截tool_use→搜索→重入)          │
 │  → modelTranslate(下游) → responseTransform        │
 │  → errorHandler                                    │
 └─────────────────────────────────────────────────────┘
@@ -54,15 +55,18 @@ src/
 │   └── errorHandler.ts         # 全局错误处理
 ├── providers/                  # LLM 供应商
 │   ├── interface.ts            # LLMProvider 接口
-│   ├── base.ts                 # 基类（重试、特性查询）
 │   └── deepseek/index.ts       # DeepSeek 供应商（请求 + SSE流）
 ├── plugins/                    # 插件系统
 │   ├── interface.ts            # Plugin + HookPoint
 │   ├── engine.ts               # Hook 引擎（O(1) 按 HookPoint 索引）
-│   └── vision/                 # 图片识别插件
-│       ├── interface.ts        # VisionProvider 接口
-│       ├── openai-compatible.ts # OpenAI 兼容视觉客户端
-│       └── index.ts            # VisionPlugin（扫描+转换+替换）
+│   ├── vision/                 # 图片识别插件
+│   │   ├── interface.ts        # VisionProvider 接口
+│   │   ├── openai-compatible.ts # OpenAI 兼容视觉客户端
+│   │   └── index.ts            # VisionPlugin（扫描+转换+替换）
+│   └── search/                 # 搜索插件
+│       ├── interface.ts        # SearchProvider + SearchResult
+│       ├── providers.ts        # 配置驱动搜索工厂（Tavily/Bocha/Brave）
+│       └── index.ts            # SearchPlugin（拦截tool_use→搜索→重入）
 ├── models/                     # Anthropic 协议 + 内部类型
 ├── routes/                     # POST /v1/messages + GET /health
 └── utils/
@@ -86,9 +90,10 @@ src/
 | 4 | modelTranslate | 请求方向：Claude 模型名 → DeepSeek 模型名 |
 | 5 | requestTransform | Anthropic 格式 → 内部 ProviderRequest |
 | 6 | vision 插件 | 扫描 `image` 块 → 调视觉模型 → 替换为文字 |
-| 7 | proxyRouter | 调用 DeepSeekProvider（流/非流） |
-| 8 | modelTranslate | 响应方向：DeepSeek 模型名 → Claude 模型名 |
-| 9 | responseTransform | 内部 ProviderResponse → Anthropic 格式 |
+| 7 | proxyRouter | 调用 DeepSeekProvider（流/非流，支持搜索重入） |
+| 8 | search 插件 | 拦截 `tool_use` → 搜索 API → `tool_result` → 重入 |
+| 9 | modelTranslate | 响应方向：DeepSeek 模型名 → Claude 模型名 |
+| 10 | responseTransform | 内部 ProviderResponse → Anthropic 格式 |
 
 ### 2. 请求上下文（context.ts）
 
@@ -124,7 +129,27 @@ DP_VISION_MODEL=gpt-4o
 DP_VISION_API_KEY=sk-xxx
 ```
 
-### 5. 速率限制
+### 5. Search 插件
+
+**时机**：供应商调用后（POST_CALL）
+**流程**：
+1. DeepSeek 返回 `tool_use(type=web_search)` → 插件拦截
+2. 提取查询，调用搜索 API（Tavily/Bocha/Brave）
+3. 格式化 `tool_result`，追加到消息列表
+4. 设置 `ctx.searchReentry = true`，触发 pipeline 第二次调用 DeepSeek
+5. 第二次调用携带搜索结果，DeepSeek 返回基于搜索的回复
+6. one-shot guard 防止无限重入
+
+**搜索供应商**：配置驱动工厂（`providers.ts`），每个供应商仅定义 URL、请求头、响应解析——无需独立类文件。
+
+```yaml
+plugins:
+  search:
+    enabled: true
+    provider: tavily   # tavily | bocha | brave
+```
+
+### 6. 速率限制
 
 `MemoryRateLimiter` — 纯内存实现：
 - 请求频率：60 秒滑动窗口
@@ -132,16 +157,16 @@ DP_VISION_API_KEY=sk-xxx
 - 5 分钟清理过期桶
 - 上限 10000 IP 桶防内存攻击
 
-### 6. DeepSeek 供应商
+### 7. DeepSeek 供应商
 
-封装 `https://api.deepseek.com/anthropic` 调用：
+`implements LLMProvider`，直接实现无基类。封装 `https://api.deepseek.com/anthropic` 调用：
 - **非流式**：POST → JSON 响应
 - **流式**：POST (stream:true) → SSE 逐行解析 → AsyncIterable
 - **超时**：配置 `timeout_ms`，默认 120 秒
 - **复用**：`fetchAPI()` 共享超时 + 错误处理
 - **断连保护**：客户端断开时中止上游流（避免浪费 token）
 
-### 7. 错误处理
+### 8. 错误处理
 
 | 错误类 | HTTP | 场景 |
 |--------|------|------|
@@ -168,6 +193,7 @@ DP_VISION_API_KEY=sk-xxx
 | `DP_VISION_BASE_URL` | Vision API 地址 |
 | `DP_VISION_MODEL` | Vision 模型名 |
 | `DP_VISION_API_KEY` | Vision API 密钥 |
+| `DP_SEARCH_API_KEY` | 搜索 API 密钥 |
 
 ## 测试
 
