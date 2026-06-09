@@ -3,11 +3,11 @@ set -e
 
 DEPLOY_DIR="${1:-./deploy}"
 
-echo "=== deepseek-proxy deploy ==="
+echo "=== deploy ==="
 echo "Target: $DEPLOY_DIR"
 echo ""
 
-echo "[1/3] TypeScript compile..."
+echo "[1/3] Compile..."
 npx tsc --noEmit && npx tsc
 
 echo "[2/3] Prepare $DEPLOY_DIR..."
@@ -23,8 +23,6 @@ npm ci --omit=dev --ignore-scripts
 cd - > /dev/null
 
 echo ""
-echo "Done. Deployed to $DEPLOY_DIR/"
+echo "Done. Files ready in $DEPLOY_DIR/"
 echo ""
-echo "Run:"
-echo "  cp .env $DEPLOY_DIR/.env"
-echo "  cd $DEPLOY_DIR && node dist/index.js"
+echo "  cp .env $DEPLOY_DIR/.env && cd $DEPLOY_DIR && node dist/index.js"

@@ -6,14 +6,18 @@ show_help() {
 deepseek-proxy — 轻量级 DeepSeek Anthropic API 代理
 
 用法:
-  ./start.sh                   默认启动（开发模式，tsx watch）
+  ./start.sh                   开发模式（tsx watch，文件变更自动重启）
+  ./start.sh run               单次启动（不 watch）
   ./start.sh prod              生产模式（编译后启动）
-  ./start.sh deploy            部署模式（deploy.sh + 生产启动）
-  ./start.sh --config FILE     指定配置文件启动
+  ./start.sh --config FILE     指定配置文件
   ./start.sh help              显示帮助
 
+部署:
+  ./deploy.sh                  编译并准备部署目录
+  ./deploy.sh /opt/proxy       指定部署目录
+
 环境变量:
-  DP_CONFIG_PATH   配置文件路径（优先于 --config）
+  DP_CONFIG_PATH   配置文件路径
   .env             自动加载，见 .env.example
 EOF
 }
@@ -23,16 +27,17 @@ case "${1:-}" in
     show_help
     exit 0
     ;;
-  prod)
-    echo "=== 生产模式 ==="
-    npx tsc
-    node dist/index.js
+  run)
+    echo "=== 单次启动 ==="
+    npx tsx src/index.ts
     ;;
-  deploy)
-    echo "=== 部署模式 ==="
-    bash deploy.sh
-    cp .env deploy/.env 2>/dev/null || true
-    cd deploy && node dist/index.js
+  prod)
+    if [ ! -d "dist" ]; then
+      echo "dist/ 不存在，先运行: npx tsc"
+      exit 1
+    fi
+    echo "=== 生产模式 ==="
+    node dist/index.js
     ;;
   --config)
     if [ -z "$2" ]; then
@@ -46,7 +51,7 @@ case "${1:-}" in
     npx tsx src/index.ts
     ;;
   *)
-    echo "=== 开发模式 (npm run dev) ==="
+    echo "=== 开发模式 (watch) ==="
     npx tsx watch src/index.ts
     ;;
 esac
