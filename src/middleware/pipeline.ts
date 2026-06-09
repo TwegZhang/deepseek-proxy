@@ -11,7 +11,14 @@ import { modelTranslateMiddleware } from "./modelTranslate";
 import { requestTransformMiddleware } from "./requestTransform";
 import { responseTransformMiddleware } from "./responseTransform";
 import { errorHandler } from "./errorHandler";
+import {
+  getProviderRequest,
+  setProviderResponse,
+  getAnthropicResponse,
+} from "./context";
 import { HookPoint } from "../plugins/interface";
+
+type ErrorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => void;
 
 export interface PipelineDeps {
   config: Config;
@@ -19,8 +26,6 @@ export interface PipelineDeps {
   pluginEngine: PluginEngine;
   provider: LLMProvider;
 }
-
-type ErrorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => void;
 
 export function buildMiddlewareStack(deps: PipelineDeps): {
   handlers: RequestHandler[];
@@ -37,14 +42,14 @@ export function buildMiddlewareStack(deps: PipelineDeps): {
 
     // Plugin pre-processing
     ((req: Request, _res: Response, next: NextFunction) => {
-      const pr = (req as unknown as Record<string, unknown>)._providerRequest;
-      pluginEngine.executeHook(HookPoint.PRE_PROCESS, { req, providerRequest: pr as ProviderRequest })
+      const pr = getProviderRequest(req);
+      pluginEngine.executeHook(HookPoint.PRE_PROCESS, { req, providerRequest: pr })
         .then(() => next()).catch(next);
     }) as unknown as RequestHandler,
 
     // Proxy — calls LLM provider
     ((req: Request, res: Response, next: NextFunction) => {
-      const providerReq = (req as unknown as Record<string, unknown>)._providerRequest as ProviderRequest;
+      const providerReq = getProviderRequest(req);
       if (!providerReq) return next(new Error("No provider request"));
 
       if (providerReq.stream) {
@@ -74,7 +79,7 @@ export function buildMiddlewareStack(deps: PipelineDeps): {
         })();
       } else {
         provider.sendMessage(providerReq).then((response) => {
-          (req as unknown as Record<string, unknown>)._providerResponse = response;
+          setProviderResponse(req, response);
           return pluginEngine.executeHook(HookPoint.POST_CALL, { req, providerRequest: providerReq, providerResponse: response });
         }).then(() => next()).catch(next);
       }
@@ -84,7 +89,7 @@ export function buildMiddlewareStack(deps: PipelineDeps): {
 
     // Send Anthropic response
     ((req: Request, res: Response, next: NextFunction) => {
-      const resp = (req as unknown as Record<string, unknown>)._anthropicResponse;
+      const resp = getAnthropicResponse(req);
       if (resp) res.json(resp);
       else next();
     }) as unknown as RequestHandler,

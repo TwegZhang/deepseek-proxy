@@ -10,17 +10,16 @@ async function main() {
 
   logger.info("Starting deepseek-proxy...");
 
-  const dsConfig = config.providers.deepseek;
-  const apiKey = (dsConfig as Record<string, unknown>).api_key as string;
+  const apiKey = config.providers.deepseek.api_key;
   if (!apiKey) {
     logger.error("DP_DEEPSEEK_API_KEY not set. Exiting.");
     process.exit(1);
   }
 
   const provider = new DeepSeekProvider(logger, {
-    base_url: dsConfig.base_url,
+    base_url: config.providers.deepseek.base_url,
     api_key: apiKey,
-    timeout_ms: dsConfig.timeout_ms,
+    timeout_ms: config.providers.deepseek.timeout_ms,
   });
 
   const pluginEngine = new PluginEngine(logger);

@@ -29,7 +29,6 @@ model_mapping:
 rate_limit:
   enabled: true
   requests_per_minute: 60
-  tokens_per_minute: 100000
   concurrency: 10
 
 # 供应商配置

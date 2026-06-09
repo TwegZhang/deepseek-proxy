@@ -1,10 +1,10 @@
 import type { Request, Response, NextFunction } from "express";
-import type { ProviderResponse } from "../models/provider";
 import type { MessagesResponse, ContentBlock } from "../models/anthropic";
-import { reverseTranslateModel, getOriginalModel } from "./modelTranslate";
+import { reverseTranslateModel } from "./modelTranslate";
+import { getProviderResponse, setAnthropicResponse, getOriginalModel, getProxyWarnings } from "./context";
 
 export function responseTransformMiddleware(req: Request, res: Response, next: NextFunction) {
-  const providerResp = (req as unknown as Record<string, unknown>)._providerResponse as ProviderResponse | undefined;
+  const providerResp = getProviderResponse(req);
   if (!providerResp) return next();
 
   const originalModel = getOriginalModel(req);
@@ -22,13 +22,9 @@ export function responseTransformMiddleware(req: Request, res: Response, next: N
     },
   };
 
-  const warnings = (req as unknown as Record<string, unknown>)._proxyWarnings as string[] | undefined;
+  const warnings = getProxyWarnings(req);
   if (warnings?.length) res.setHeader("X-Proxy-Warnings", warnings.join("; "));
 
-  (req as unknown as Record<string, unknown>)._anthropicResponse = anthropicResp;
+  setAnthropicResponse(req, anthropicResp);
   next();
-}
-
-export function getAnthropicResponse(req: Request): MessagesResponse | undefined {
-  return (req as unknown as Record<string, unknown>)._anthropicResponse as MessagesResponse | undefined;
 }

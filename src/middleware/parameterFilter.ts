@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
+import { setProxyWarnings } from "./context";
 
 const UNSUPPORTED_PARAMS = ["top_k", "cache_control", "citations", "service_tier", "mcp_servers", "container"];
 const UNSUPPORTED_CONTENT = ["image", "document", "search_result", "container_upload", "redacted_thinking"];
@@ -31,6 +32,6 @@ export function parameterFilterMiddleware(req: Request, _res: Response, next: Ne
     }
   }
 
-  if (warnings.length > 0) (req as unknown as Record<string, unknown>)._proxyWarnings = warnings;
+  if (warnings.length > 0) setProxyWarnings(req, warnings);
   next();
 }

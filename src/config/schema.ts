@@ -7,6 +7,7 @@ export const ConfigSchema = z.object({
   }),
 
   auth: z.object({
+    proxy_key: z.string().optional(),
     keys: z
       .array(
         z.object({
@@ -28,13 +29,13 @@ export const ConfigSchema = z.object({
   rate_limit: z.object({
     enabled: z.boolean().default(true),
     requests_per_minute: z.number().default(60),
-    tokens_per_minute: z.number().default(100000),
     concurrency: z.number().default(10),
   }),
 
   providers: z.object({
     deepseek: z.object({
       base_url: z.string().default("https://api.deepseek.com/anthropic"),
+      api_key: z.string().optional(),
       timeout_ms: z.number().default(120000),
     }),
   }),

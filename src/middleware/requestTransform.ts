@@ -1,12 +1,13 @@
 import type { Request, Response, NextFunction } from "express";
 import type { ProviderRequest, InternalMessage } from "../models/provider";
 import type { MessagesRequest, ContentBlock, Message } from "../models/anthropic";
+import { setProviderRequest } from "./context";
 
 export function requestTransformMiddleware(req: Request, _res: Response, next: NextFunction) {
   const body = req.body as MessagesRequest;
   if (!body?.messages) return next();
 
-  const messages: InternalMessage[] = body.messages.map((m) => ({
+  const messages: InternalMessage[] = body.messages.map((m: Message) => ({
     role: m.role,
     content: typeof m.content === "string" ? [{ type: "text" as const, text: m.content }] : (m.content as ContentBlock[]),
   }));
@@ -17,9 +18,7 @@ export function requestTransformMiddleware(req: Request, _res: Response, next: N
   }
 
   const providerReq: ProviderRequest = {
-    model: body.model,
-    messages,
-    system,
+    model: body.model, messages, system,
     maxTokens: body.max_tokens || 4096,
     temperature: body.temperature,
     topP: body.top_p,
@@ -30,10 +29,6 @@ export function requestTransformMiddleware(req: Request, _res: Response, next: N
     metadata: body.metadata,
   };
 
-  (req as unknown as Record<string, unknown>)._providerRequest = providerReq;
+  setProviderRequest(req, providerReq);
   next();
-}
-
-export function getProviderRequest(req: Request): ProviderRequest | undefined {
-  return (req as unknown as Record<string, unknown>)._providerRequest as ProviderRequest | undefined;
 }
