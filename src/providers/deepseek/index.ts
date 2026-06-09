@@ -5,6 +5,7 @@ import type { ProviderRequest, ProviderResponse, ProviderStreamChunk } from "../
 import type { MessagesResponse, ContentBlock } from "../../models/anthropic";
 import { ProviderError } from "../../utils/errors";
 import { parseSSEStream } from "../../utils/stream";
+import { fetchWithTimeout } from "../../utils/fetch";
 
 export class DeepSeekProvider extends BaseProvider {
   readonly id = "deepseek";
@@ -23,19 +24,15 @@ export class DeepSeekProvider extends BaseProvider {
   }
 
   private async fetchAPI(path: string, body: Record<string, unknown>): Promise<Response> {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
-
-    try {
-      return await fetch(`${this.baseUrl}${path}`, {
+    return fetchWithTimeout(
+      `${this.baseUrl}${path}`,
+      {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-api-key": this.apiKey },
         body: JSON.stringify(body),
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timer);
-    }
+      },
+      this.timeoutMs
+    );
   }
 
   private buildRequestBody(req: ProviderRequest): Record<string, unknown> {

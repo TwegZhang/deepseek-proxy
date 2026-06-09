@@ -1,6 +1,7 @@
 import type { VisionProvider } from "./interface";
 import type { Logger } from "../../utils/logger";
 import { ProviderError } from "../../utils/errors";
+import { fetchWithTimeout } from "../../utils/fetch";
 
 export interface OpenAIVisionConfig {
   base_url: string;
@@ -8,6 +9,8 @@ export interface OpenAIVisionConfig {
   model: string;
   max_tokens: number;
 }
+
+const DEFAULT_PROMPT = "Please describe this image in detail. Include all visible text, UI elements, objects, people, colors, layout, and any information useful for understanding the image.";
 
 export class OpenAIVisionProvider implements VisionProvider {
   readonly name: string;
@@ -17,11 +20,9 @@ export class OpenAIVisionProvider implements VisionProvider {
   }
 
   async describe(imageBase64: string, mediaType: string, prompt?: string): Promise<string> {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 30_000);
-
-    try {
-      const res = await fetch(`${this.config.base_url}/chat/completions`, {
+    const res = await fetchWithTimeout(
+      `${this.config.base_url}/chat/completions`,
+      {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -33,22 +34,24 @@ export class OpenAIVisionProvider implements VisionProvider {
           messages: [{
             role: "user",
             content: [
-              { type: "text", text: prompt || "Please describe this image in detail. Include all visible text, UI elements, objects, people, colors, layout, and any information that would be useful for understanding the image." },
+              { type: "text", text: prompt || DEFAULT_PROMPT },
               { type: "image_url", image_url: { url: `data:${mediaType};base64,${imageBase64}` } },
             ],
           }],
         }),
-        signal: controller.signal,
-      });
+      },
+      30_000
+    );
 
-      if (!res.ok) throw new ProviderError(`Vision API error (${res.status}): ${await res.text().catch(() => "")}`, res.status);
-
-      const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-      const text = data.choices?.[0]?.message?.content;
-      if (!text) throw new ProviderError("Vision API returned empty response", 502);
-      return text;
-    } finally {
-      clearTimeout(timer);
+    if (!res.ok) {
+      const errBody = await res.text();
+      throw new ProviderError(`Vision API error (${res.status}): ${errBody || "no body"}`, res.status);
     }
+
+    const data = (await res.json()) as Record<string, unknown>;
+    const choices = data?.choices as Array<{ message?: { content?: string } }> | undefined;
+    const content = choices?.[0]?.message?.content;
+    if (!content) throw new ProviderError("Vision API returned empty response", 502);
+    return content;
   }
 }

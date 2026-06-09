@@ -26,7 +26,11 @@ async function main() {
   const pluginEngine = new PluginEngine(logger);
 
   if (config.plugins.vision.enabled) {
-    pluginEngine.register(new VisionPlugin(logger));
+    if (process.env.DP_VISION_BASE_URL && process.env.DP_VISION_API_KEY) {
+      pluginEngine.register(new VisionPlugin(logger));
+    } else {
+      logger.warn("Vision plugin enabled but DP_VISION_BASE_URL or DP_VISION_API_KEY not set — skipping");
+    }
   }
   if (config.plugins.search.enabled) {
     logger.warn("Search plugin not yet implemented — skipping");
