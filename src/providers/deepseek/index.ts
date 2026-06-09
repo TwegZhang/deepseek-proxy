@@ -51,7 +51,7 @@ export class DeepSeekProvider extends BaseProvider {
   }
 
   async sendMessage(req: ProviderRequest): Promise<ProviderResponse> {
-    const body = this.buildRequestBody({ ...req, stream: false });
+    const body = this.buildRequestBody(req);
     const res = await this.fetchAPI("/v1/messages", body);
 
     if (!res.ok) {
@@ -70,7 +70,7 @@ export class DeepSeekProvider extends BaseProvider {
   }
 
   async *sendMessageStream(req: ProviderRequest): AsyncIterable<ProviderStreamChunk> {
-    const body = this.buildRequestBody({ ...req, stream: true });
+    const body = this.buildRequestBody(req);
     const res = await this.fetchAPI("/v1/messages", body);
 
     if (!res.ok) {

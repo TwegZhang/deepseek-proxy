@@ -58,9 +58,13 @@ export function buildMiddlewareStack(deps: PipelineDeps): {
         res.setHeader("Connection", "keep-alive");
 
         let lastModel: string | undefined;
+        let aborted = false;
+        res.on("close", () => { aborted = true; });
+
         (async () => {
           try {
             for await (const chunk of provider.sendMessageStream(providerReq)) {
+              if (aborted) break;
               await pluginEngine.executeHook(HookPoint.PRE_STREAM_CHUNK, {
                 req, providerRequest: providerReq, streamChunk: chunk,
               });

@@ -40,37 +40,43 @@ export class VisionPlugin implements Plugin {
     if (!ctx.providerRequest?.messages) return {};
 
     const messages = ctx.providerRequest.messages;
-    let modified = false;
-    const warnings: string[] = [];
 
-    for (const msg of messages) {
+    // Collect all image blocks across messages for parallel processing
+    const imageBlocks: Array<{ msgIndex: number; blockIndex: number; source: { data: string; media_type: string } }> = [];
+    for (let mi = 0; mi < messages.length; mi++) {
+      const msg = messages[mi];
       if (!Array.isArray(msg.content)) continue;
-
-      const newContent: ContentBlock[] = [];
-
-      for (const block of msg.content) {
+      for (let bi = 0; bi < msg.content.length; bi++) {
+        const block = msg.content[bi];
         if (block.type === "image") {
           const source = block.source as { data?: string; media_type?: string } | undefined;
-          if (!source?.data) {
-            warnings.push("image block without base64 data skipped");
-            continue;
+          if (source?.data) {
+            imageBlocks.push({ msgIndex: mi, blockIndex: bi, source: { data: source.data, media_type: source.media_type || "image/png" } });
           }
-
-          try {
-            const description = await this.provider.describe(source.data, source.media_type || "image/png");
-            newContent.push({ type: "text", text: `[Image: ${description}]` });
-            modified = true;
-          } catch (err) {
-            this.logger.error({ err }, "Vision API call failed");
-            warnings.push(`image processing failed: ${(err as Error).message}`);
-            newContent.push(block);
-          }
-        } else {
-          newContent.push(block);
         }
       }
+    }
 
-      msg.content = newContent;
+    if (imageBlocks.length === 0) return {};
+
+    const warnings: string[] = [];
+    const results = await Promise.all(
+      imageBlocks.map(async (ib) => {
+        try {
+          return { ...ib, text: await this.provider!.describe(ib.source.data, ib.source.media_type) };
+        } catch (err) {
+          this.logger.error({ err }, "Vision API call failed");
+          warnings.push(`image processing failed: ${(err as Error).message}`);
+          return { ...ib, text: null };
+        }
+      })
+    );
+
+    // Apply results back to messages
+    for (const r of results) {
+      if (r.text) {
+        messages[r.msgIndex].content[r.blockIndex] = { type: "text", text: `[Image: ${r.text}]` };
+      }
     }
 
     if (warnings.length) {
@@ -78,6 +84,6 @@ export class VisionPlugin implements Plugin {
       setProxyWarnings(ctx.req, [...existing, ...warnings]);
     }
 
-    return { modified };
+    return { modified: true };
   }
 }
