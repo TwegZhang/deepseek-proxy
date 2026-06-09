@@ -87,15 +87,14 @@ export function buildMiddlewareStack(deps: PipelineDeps): {
           let response = await provider.sendMessage(providerReq);
           setProviderResponse(req, response);
 
-          await pluginEngine.executeHook(HookPoint.POST_CALL, { req, providerRequest: providerReq, providerResponse: response });
+          const ctx = { req, providerRequest: providerReq, providerResponse: response, searchReentry: false };
+          await pluginEngine.executeHook(HookPoint.POST_CALL, ctx);
 
-          // Search plugin may have modified messages and set re-entry flag
-          if ((req as unknown as Record<string, unknown>)._searchReentry) {
-            delete (req as unknown as Record<string, unknown>)._searchReentry;
-            providerReq.stream = false;
+          // Search plugin may have modified messages — re-call provider with results
+          if (ctx.searchReentry) {
             response = await provider.sendMessage(providerReq);
             setProviderResponse(req, response);
-            await pluginEngine.executeHook(HookPoint.POST_CALL, { req, providerRequest: providerReq, providerResponse: response });
+            await pluginEngine.executeHook(HookPoint.POST_CALL, { req, providerRequest: providerReq, providerResponse: response, searchReentry: true });
           }
 
           next();

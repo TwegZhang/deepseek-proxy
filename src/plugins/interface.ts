@@ -12,6 +12,7 @@ export interface HookContext {
   providerRequest?: ProviderRequest;
   providerResponse?: ProviderResponse;
   streamChunk?: ProviderStreamChunk;
+  searchReentry?: boolean;
 }
 
 export interface HookResult {

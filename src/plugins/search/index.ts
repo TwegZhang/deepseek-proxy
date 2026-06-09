@@ -36,6 +36,7 @@ export class SearchPlugin implements Plugin {
 
   async execute(hook: HookPoint, ctx: HookContext): Promise<HookResult> {
     if (hook !== HookPoint.POST_CALL || !this.searchProvider) return {};
+    if (ctx.searchReentry) return {}; // one-shot guard: skip on re-entry to avoid wasted API calls
     if (!ctx.providerResponse) return {};
 
     const toolUses = findSearchToolUses(ctx.providerResponse.content);
@@ -69,7 +70,7 @@ export class SearchPlugin implements Plugin {
       messages.push({ role: "user", content: toolResults });
     }
 
-    (ctx as unknown as Record<string, unknown>)._searchReentry = true;
+    ctx.searchReentry = true;
     return { modified: true };
   }
 }

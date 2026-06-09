@@ -4,11 +4,11 @@ import { ProviderError } from "../../../utils/errors";
 
 export class BochaProvider implements SearchProvider {
   readonly name = "bocha";
-  constructor(private _key: string) {}
+  constructor(private key: string) {}
   async search(query: string): Promise<SearchResult[]> {
     const res = await fetchWithTimeout(
       `https://api.bochaai.com/v1/ai/search?query=${encodeURIComponent(query)}&count=5`,
-      { headers: { Authorization: `Bearer ${this._key}` } },
+      { headers: { Authorization: `Bearer ${this.key}` } },
       10_000
     );
     if (!res.ok) throw new ProviderError(`Bocha search error (${res.status})`, res.status);
