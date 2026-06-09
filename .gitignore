@@ -5,3 +5,4 @@ dist/
 /certs/
 SESSION_NOTES.md
 *.swp
+.DS_Store
