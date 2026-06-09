@@ -43,13 +43,16 @@ export const ConfigSchema = z.object({
   plugins: z.object({
     vision: z.object({
       enabled: z.boolean().default(false),
-      provider: z.enum(["openai", "gemini"]).default("openai"),
-      openai: z
-        .object({
-          model: z.string().default("gpt-4o"),
+      provider: z.string().default("openai"),
+      providers: z.record(
+        z.string(),
+        z.object({
+          base_url: z.string(),
+          api_key: z.string().optional(),
+          model: z.string(),
           max_tokens: z.number().default(512),
         })
-        .default({}),
+      ).default({}),
     }),
     search: z.object({
       enabled: z.boolean().default(false),

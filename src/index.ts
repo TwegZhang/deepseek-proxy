@@ -3,6 +3,7 @@ import { createLogger } from "./utils/logger";
 import { createApp } from "./app";
 import { DeepSeekProvider } from "./providers/deepseek";
 import { PluginEngine } from "./plugins/engine";
+import { VisionPlugin } from "./plugins/vision";
 
 async function main() {
   const config = loadConfig();
@@ -25,7 +26,7 @@ async function main() {
   const pluginEngine = new PluginEngine(logger);
 
   if (config.plugins.vision.enabled) {
-    logger.warn("Vision plugin not yet implemented — skipping");
+    pluginEngine.register(new VisionPlugin(logger));
   }
   if (config.plugins.search.enabled) {
     logger.warn("Search plugin not yet implemented — skipping");
