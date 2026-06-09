@@ -97,9 +97,11 @@ export class DeepSeekProvider extends BaseProvider {
   async healthCheck(): Promise<{ ok: boolean; latency: number }> {
     const start = Date.now();
     try {
-      const res = await fetch(`${this.baseUrl}/v1/models`, {
-        headers: { "x-api-key": this.apiKey },
-      });
+      const res = await fetchWithTimeout(
+        `${this.baseUrl}/v1/models`,
+        { headers: { "x-api-key": this.apiKey } },
+        this.timeoutMs
+      );
       return { ok: res.ok, latency: Date.now() - start };
     } catch {
       return { ok: false, latency: Date.now() - start };
