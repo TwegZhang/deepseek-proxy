@@ -59,6 +59,8 @@ export class VisionPlugin implements Plugin {
 
     if (imageBlocks.length === 0) return {};
 
+    this.logger.info({ count: imageBlocks.length }, "vision: processing images");
+
     const warnings: string[] = [];
     const results = await Promise.all(
       imageBlocks.map(async (ib) => {

@@ -39,6 +39,9 @@ export class SearchPlugin implements Plugin {
     const toolUses = findSearchToolUses(ctx.providerResponse.content);
     if (toolUses.length === 0) return {};
 
+    const queries = toolUses.map((t) => t.input?.query || "(unknown)");
+    this.logger.info({ queries }, "search: executing queries");
+
     const results = await Promise.all(
       toolUses.map(async (tu) => {
         try {
@@ -66,6 +69,9 @@ export class SearchPlugin implements Plugin {
       });
       messages.push({ role: "user", content: toolResults });
     }
+
+    const totalResults = results.reduce((sum, r) => sum + r.results.length, 0);
+    this.logger.info({ totalResults, queries: results.map((r) => r.results.length) }, "search: results injected, re-entering");
 
     ctx.searchReentry = true;
     return { modified: true };
