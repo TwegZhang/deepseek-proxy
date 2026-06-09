@@ -1,1 +1,0 @@
-{"version":3,"file":"interface.d.ts","sourceRoot":"","sources":["../../../src/plugins/vision/interface.ts"],"names":[],"mappings":"AAAA,MAAM,WAAW,cAAc;IAC7B,QAAQ,CAAC,IAAI,EAAE,MAAM,CAAC;IACtB,QAAQ,CAAC,WAAW,EAAE,MAAM,EAAE,SAAS,EAAE,MAAM,EAAE,MAAM,CAAC,EAAE,MAAM,GAAG,OAAO,CAAC,MAAM,CAAC,CAAC;CACpF"}
