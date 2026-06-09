@@ -31,7 +31,7 @@ if [ ! -d "src" ] && [ -d "dist" ]; then
     help|--help|-h) show_help; exit 0 ;;
     https)
       if [ ! -f "certs/server.crt" ] || [ ! -f "certs/server.key" ]; then
-        LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "127.0.0.1")
+        LOCAL_IP=$(ifconfig 2>/dev/null | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}' | head -1 || echo "127.0.0.1")
         echo "生成自签名证书 (IP: $LOCAL_IP)..."
         mkdir -p certs
         openssl req -x509 -nodes -days 365 \
@@ -78,7 +78,7 @@ case "${1:-}" in
     CERT="$CERT_DIR/server.crt"
     KEY="$CERT_DIR/server.key"
     if [ ! -f "$CERT" ] || [ ! -f "$KEY" ]; then
-      LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "127.0.0.1")
+      LOCAL_IP=$(ifconfig 2>/dev/null | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}' | head -1 || echo "127.0.0.1")
       echo "生成自签名证书 (IP: $LOCAL_IP)..."
       openssl req -x509 -nodes -days 365 \
         -subj "/CN=$LOCAL_IP" \
