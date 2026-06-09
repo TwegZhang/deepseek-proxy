@@ -82,10 +82,24 @@ export function buildMiddlewareStack(deps: PipelineDeps): {
           } catch (err) { next(err); }
         })();
       } else {
-        provider.sendMessage(providerReq).then((response) => {
+        // Non-streaming — may re-enter for search
+        (async () => {
+          let response = await provider.sendMessage(providerReq);
           setProviderResponse(req, response);
-          return pluginEngine.executeHook(HookPoint.POST_CALL, { req, providerRequest: providerReq, providerResponse: response });
-        }).then(() => next()).catch(next);
+
+          await pluginEngine.executeHook(HookPoint.POST_CALL, { req, providerRequest: providerReq, providerResponse: response });
+
+          // Search plugin may have modified messages and set re-entry flag
+          if ((req as unknown as Record<string, unknown>)._searchReentry) {
+            delete (req as unknown as Record<string, unknown>)._searchReentry;
+            providerReq.stream = false;
+            response = await provider.sendMessage(providerReq);
+            setProviderResponse(req, response);
+            await pluginEngine.executeHook(HookPoint.POST_CALL, { req, providerRequest: providerReq, providerResponse: response });
+          }
+
+          next();
+        })().catch(next);
       }
     }) as unknown as RequestHandler,
 
