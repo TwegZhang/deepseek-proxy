@@ -4,6 +4,7 @@ import { createApp } from "./app";
 import { DeepSeekProvider } from "./providers/deepseek";
 import { PluginEngine } from "./plugins/engine";
 import { VisionPlugin } from "./plugins/vision";
+import { SearchPlugin } from "./plugins/search";
 
 async function main() {
   const config = loadConfig();
@@ -33,7 +34,11 @@ async function main() {
     }
   }
   if (config.plugins.search.enabled) {
-    logger.warn("Search plugin not yet implemented — skipping");
+    if (process.env.DP_SEARCH_API_KEY) {
+      pluginEngine.register(new SearchPlugin(logger));
+    } else {
+      logger.warn("Search plugin enabled but DP_SEARCH_API_KEY not set — skipping");
+    }
   }
 
   await pluginEngine.initializeAll();
