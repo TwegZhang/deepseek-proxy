@@ -1,26 +1,28 @@
-import { BaseProvider } from "../base";
 import type { Logger } from "../../utils/logger";
-import type { LLMFeature } from "../interface";
+import type { LLMProvider, LLMFeature } from "../interface";
 import type { ProviderRequest, ProviderResponse, ProviderStreamChunk } from "../../models/provider";
 import type { MessagesResponse, ContentBlock } from "../../models/anthropic";
 import { ProviderError } from "../../utils/errors";
 import { parseSSEStream } from "../../utils/stream";
 import { fetchWithTimeout } from "../../utils/fetch";
 
-export class DeepSeekProvider extends BaseProvider {
+export class DeepSeekProvider implements LLMProvider {
   readonly id = "deepseek";
   readonly name = "DeepSeek";
-  protected _features: Set<LLMFeature> = new Set(["text", "tool_use", "streaming", "thinking"]);
+  private _features: Set<LLMFeature> = new Set(["text", "tool_use", "streaming", "thinking"]);
 
   private baseUrl: string;
   private apiKey: string;
   private timeoutMs: number;
 
-  constructor(logger: Logger, config: { base_url: string; api_key: string; timeout_ms: number }) {
-    super(logger);
+  constructor(private logger: Logger, config: { base_url: string; api_key: string; timeout_ms: number }) {
     this.baseUrl = config.base_url;
     this.apiKey = config.api_key;
     this.timeoutMs = config.timeout_ms;
+  }
+
+  supports(feature: LLMFeature): boolean {
+    return this._features.has(feature);
   }
 
   private async fetchAPI(path: string, body: Record<string, unknown>): Promise<Response> {

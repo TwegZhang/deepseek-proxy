@@ -2,9 +2,7 @@ import type { Logger } from "../../utils/logger";
 import type { ContentBlock } from "../../models/anthropic";
 import { HookPoint, type HookContext, type HookResult, type Plugin } from "../interface";
 import { getConfig } from "../../config";
-import { TavilyProvider } from "./providers/tavily";
-import { BochaProvider } from "./providers/bocha";
-import { BraveProvider } from "./providers/brave";
+import { createSearchProvider } from "./providers";
 import type { SearchProvider } from "./interface";
 
 export class SearchPlugin implements Plugin {
@@ -24,11 +22,10 @@ export class SearchPlugin implements Plugin {
       return;
     }
 
-    switch (config.provider) {
-      case "tavily": this.searchProvider = new TavilyProvider(apiKey); break;
-      case "bocha": this.searchProvider = new BochaProvider(apiKey); break;
-      case "brave": this.searchProvider = new BraveProvider(apiKey); break;
-      default: this.logger.warn({ provider: config.provider }, "Unknown search provider"); return;
+    this.searchProvider = createSearchProvider(config.provider, apiKey);
+    if (!this.searchProvider) {
+      this.logger.warn({ provider: config.provider }, "Unknown search provider");
+      return;
     }
 
     this.logger.info({ provider: config.provider }, "Search plugin ready");

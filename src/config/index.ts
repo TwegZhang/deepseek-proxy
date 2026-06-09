@@ -19,46 +19,26 @@ function loadYamlConfig(): Record<string, unknown> {
 }
 
 function applyEnvOverrides(raw: Record<string, unknown>): Record<string, unknown> {
-  const merged = { ...raw };
+  const m = { ...raw } as Record<string, unknown>;
 
-  if (process.env.DP_DEEPSEEK_API_KEY) {
-    const providers = (merged.providers as Record<string, Record<string, unknown>>) || {};
-    const ds = providers.deepseek || {};
-    providers.deepseek = { ...ds, api_key: process.env.DP_DEEPSEEK_API_KEY };
-    merged.providers = providers;
-  }
+  const setNested = (path: string, key: string, val: unknown) => {
+    const parts = path.split(".");
+    let obj = m;
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i];
+      if (!obj[p] || typeof obj[p] !== "object") obj[p] = {} as Record<string, unknown>;
+      if (i === parts.length - 1) (obj[p] as Record<string, unknown>)[key] = val;
+      else obj = obj[p] as Record<string, unknown>;
+    }
+  };
 
-  if (process.env.DP_PROXY_API_KEY) {
-    const auth = (merged.auth as Record<string, unknown>) || {};
-    merged.auth = { ...auth, proxy_key: process.env.DP_PROXY_API_KEY };
-  }
+  if (process.env.DP_DEEPSEEK_API_KEY) setNested("providers.deepseek", "api_key", process.env.DP_DEEPSEEK_API_KEY);
+  if (process.env.DP_PROXY_API_KEY) setNested("auth", "proxy_key", process.env.DP_PROXY_API_KEY);
+  if (process.env.DP_SEARCH_API_KEY) setNested("plugins.search", "api_key", process.env.DP_SEARCH_API_KEY);
+  if (process.env.LOG_LEVEL) setNested("logging", "level", process.env.LOG_LEVEL);
+  if (process.env.PORT) setNested("server", "port", parseInt(process.env.PORT, 10));
 
-  if (process.env.DP_VISION_OPENAI_API_KEY) {
-    const plugins = (merged.plugins as Record<string, Record<string, unknown>>) || {};
-    const vision = (plugins.vision as Record<string, unknown>) || {};
-    const openai = (vision.openai as Record<string, unknown>) || {};
-    plugins.vision = { ...vision, openai: { ...openai, api_key: process.env.DP_VISION_OPENAI_API_KEY } };
-    merged.plugins = plugins;
-  }
-
-  if (process.env.DP_SEARCH_API_KEY) {
-    const plugins = (merged.plugins as Record<string, Record<string, unknown>>) || {};
-    const search = (plugins.search as Record<string, unknown>) || {};
-    plugins.search = { ...search, api_key: process.env.DP_SEARCH_API_KEY };
-    merged.plugins = plugins;
-  }
-
-  if (process.env.LOG_LEVEL) {
-    const logging = (merged.logging as Record<string, unknown>) || {};
-    merged.logging = { ...logging, level: process.env.LOG_LEVEL };
-  }
-
-  if (process.env.PORT) {
-    const server = (merged.server as Record<string, unknown>) || {};
-    merged.server = { ...server, port: parseInt(process.env.PORT, 10) };
-  }
-
-  return merged;
+  return m;
 }
 
 function deepMerge<T extends Record<string, unknown>>(base: T, override: Partial<T>): T {
