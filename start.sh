@@ -30,14 +30,20 @@ if [ ! -d "src" ] && [ -d "dist" ]; then
   case "${1:-}" in
     help|--help|-h) show_help; exit 0 ;;
     https)
-      if [ -d "certs" ] && [ -f "certs/server.crt" ] && [ -f "certs/server.key" ]; then
-        export DP_HTTPS_CERT="certs/server.crt"
-        export DP_HTTPS_KEY="certs/server.key"
-        echo "=== 生产模式 (HTTPS) ==="
-      else
-        echo "certs/ 不存在，先运行: cd .. && ./start.sh https"
-        exit 1
+      if [ ! -f "certs/server.crt" ] || [ ! -f "certs/server.key" ]; then
+        LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "127.0.0.1")
+        echo "生成自签名证书 (IP: $LOCAL_IP)..."
+        mkdir -p certs
+        openssl req -x509 -nodes -days 365 \
+          -subj "/CN=$LOCAL_IP" \
+          -addext "subjectAltName=IP:$LOCAL_IP,IP:127.0.0.1,DNS:localhost" \
+          -newkey rsa:2048 \
+          -keyout certs/server.key \
+          -out certs/server.crt 2>/dev/null
       fi
+      export DP_HTTPS_CERT="certs/server.crt"
+      export DP_HTTPS_KEY="certs/server.key"
+      echo "=== 生产模式 (HTTPS) ==="
       node dist/index.js ;;
     *) echo "=== 生产模式 ==="; node dist/index.js ;;
   esac
