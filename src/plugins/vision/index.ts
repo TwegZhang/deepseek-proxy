@@ -41,17 +41,35 @@ export class VisionPlugin implements Plugin {
 
     const messages = ctx.providerRequest.messages;
 
+    // Log what content types are present (debug)
+    for (const msg of messages) {
+      if (!Array.isArray(msg.content)) continue;
+      for (const block of msg.content) {
+        const b = block as unknown as Record<string, unknown>;
+        this.logger.info({ type: b.type, hasSource: !!b.source, hasImageUrl: !!b.image_url, hasData: !!((b.source as Record<string, unknown>)?.data) }, "vision: scanning block");
+      }
+    }
+
     // Collect all image blocks across messages for parallel processing
     const imageBlocks: Array<{ msgIndex: number; blockIndex: number; source: { data: string; media_type: string } }> = [];
     for (let mi = 0; mi < messages.length; mi++) {
       const msg = messages[mi];
       if (!Array.isArray(msg.content)) continue;
       for (let bi = 0; bi < msg.content.length; bi++) {
-        const block = msg.content[bi];
-        if (block.type === "image") {
-          const source = block.source as { data?: string; media_type?: string } | undefined;
+        const block = msg.content[bi] as unknown as Record<string, unknown>;
+        // Anthropic format: { type: "image", source: { type: "base64", media_type: "image/png", data: "..." } }
+        if (block.type === "image" && block.source) {
+          const source = block.source as { data?: string; media_type?: string };
           if (source?.data) {
             imageBlocks.push({ msgIndex: mi, blockIndex: bi, source: { data: source.data, media_type: source.media_type || "image/png" } });
+          }
+        }
+        // OpenAI format: { type: "image_url", image_url: { url: "data:image/png;base64,..." } }
+        if (block.type === "image_url" && block.image_url) {
+          const imageUrl = (block.image_url as { url?: string }).url || "";
+          const match = imageUrl.match(/^data:(image\/\w+);base64,(.+)$/);
+          if (match) {
+            imageBlocks.push({ msgIndex: mi, blockIndex: bi, source: { data: match[2], media_type: match[1] } });
           }
         }
       }
@@ -77,6 +95,7 @@ export class VisionPlugin implements Plugin {
     // Apply results back to messages
     for (const r of results) {
       if (r.text) {
+        this.logger.info({ description: r.text }, "vision: image described");
         messages[r.msgIndex].content[r.blockIndex] = { type: "text", text: `[Image: ${r.text}]` };
       }
     }
