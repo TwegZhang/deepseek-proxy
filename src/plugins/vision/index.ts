@@ -15,30 +15,24 @@ export class VisionPlugin implements Plugin {
   constructor(private logger: Logger) {}
 
   async initialize(): Promise<void> {
+    const baseUrl = process.env.DP_VISION_BASE_URL;
+    const apiKey = process.env.DP_VISION_API_KEY;
+    if (!baseUrl || !apiKey) {
+      this.logger.warn("Vision plugin disabled — set DP_VISION_BASE_URL and DP_VISION_API_KEY in .env");
+      return;
+    }
+
     const config = getConfig();
-    const vc = config.plugins.vision;
-
-    const providerConfig = vc.providers[vc.provider];
-    if (!providerConfig) {
-      this.logger.warn({ provider: vc.provider }, "Vision provider not found in config — disabled");
-      return;
-    }
-
-    const envKey = `DP_VISION_${vc.provider.toUpperCase()}_API_KEY`;
-    const apiKey = providerConfig.api_key || process.env[envKey];
-    if (!apiKey) {
-      this.logger.warn({ envKey }, `Vision API key not set — disabled. Set ${envKey} env var.`);
-      return;
-    }
+    const model = process.env.DP_VISION_MODEL || config.plugins.vision.model;
 
     this.provider = new OpenAIVisionProvider(this.logger, {
-      base_url: providerConfig.base_url,
+      base_url: baseUrl,
       api_key: apiKey,
-      model: providerConfig.model,
-      max_tokens: providerConfig.max_tokens,
+      model,
+      max_tokens: config.plugins.vision.max_tokens,
     });
 
-    this.logger.info({ provider: vc.provider, model: providerConfig.model }, "Vision plugin ready");
+    this.logger.info({ baseUrl, model }, "Vision plugin ready");
   }
 
   async execute(hook: HookPoint, ctx: HookContext): Promise<HookResult> {
@@ -69,7 +63,7 @@ export class VisionPlugin implements Plugin {
           } catch (err) {
             this.logger.error({ err }, "Vision API call failed");
             warnings.push(`image processing failed: ${(err as Error).message}`);
-            newContent.push(block); // keep original on failure
+            newContent.push(block);
           }
         } else {
           newContent.push(block);
