@@ -33,6 +33,8 @@ gen_certs() {
   local KEY="$CERT_DIR/server.key"
 
   if [ -f "$CERT" ] && [ -f "$KEY" ]; then
+    export DP_HTTPS_CERT="$CERT"
+    export DP_HTTPS_KEY="$KEY"
     return 0
   fi
 
