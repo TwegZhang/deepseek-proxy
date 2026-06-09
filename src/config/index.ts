@@ -9,7 +9,7 @@ import { ConfigurationError } from "../utils/errors";
 dotenv.config();
 
 function loadYamlConfig(): Record<string, unknown> {
-  const configPath = path.resolve(process.cwd(), "config", "default.yaml");
+  const configPath = process.env.DP_CONFIG_PATH || path.resolve(process.cwd(), "config", "default.yaml");
   try {
     const raw = fs.readFileSync(configPath, "utf-8");
     return (yaml.load(raw) as Record<string, unknown>) || {};
