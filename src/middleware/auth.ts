@@ -10,8 +10,11 @@ export function authMiddleware(req: Request, _res: Response, next: NextFunction)
 
   if (!proxyKey && keys.length === 0) return next();
 
-  const apiKey = (req.headers["x-api-key"] as string)?.trim();
-  if (!apiKey) return next(new AuthError("Missing x-api-key header"));
+  const apiKey =
+    (req.headers["x-api-key"] as string)?.trim() ||
+    (req.headers["authorization"] as string)?.replace(/^Bearer\s+/i, "")?.trim();
+
+  if (!apiKey) return next(new AuthError("Missing API key. Use x-api-key header or Authorization: Bearer <key>"));
 
   // Single-key mode — simple string compare, no bcrypt needed
   if (proxyKey) {
