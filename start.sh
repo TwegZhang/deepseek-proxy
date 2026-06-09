@@ -22,6 +22,15 @@ deepseek-proxy — 轻量级 DeepSeek Anthropic API 代理
 EOF
 }
 
+# 自检测：部署目录无 src/ 但 dist/ 存在 → 生产模式
+if [ ! -d "src" ] && [ -d "dist" ]; then
+  case "${1:-}" in
+    help|--help|-h) show_help; exit 0 ;;
+    *) echo "=== 生产模式 (部署环境) ==="; node dist/index.js ;;
+  esac
+  exit 0
+fi
+
 case "${1:-}" in
   help|--help|-h)
     show_help
@@ -42,7 +51,6 @@ case "${1:-}" in
   --config)
     if [ -z "$2" ]; then
       echo "错误: --config 需要指定文件路径"
-      echo "用法: ./start.sh --config /path/to/config.yaml"
       exit 1
     fi
     export DP_CONFIG_PATH="$2"
