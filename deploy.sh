@@ -17,7 +17,8 @@ cp -r dist "$DEPLOY_DIR/dist"
 cp -r config "$DEPLOY_DIR/config"
 cp package.json package-lock.json "$DEPLOY_DIR/"
 
-echo "[3/3] Install production deps..."
+echo "[3/3] Copy .env + install production deps..."
+cp .env "$DEPLOY_DIR/.env"
 cd "$DEPLOY_DIR"
 npm ci --omit=dev --ignore-scripts
 cd - > /dev/null
@@ -25,4 +26,8 @@ cd - > /dev/null
 echo ""
 echo "Done. Files ready in $DEPLOY_DIR/"
 echo ""
-echo "  cp .env $DEPLOY_DIR/.env && cd $DEPLOY_DIR && node dist/index.js"
+echo "从部署目录启动:"
+echo "  cd $DEPLOY_DIR && node dist/index.js"
+echo ""
+echo "从项目目录启动（无需部署）:"
+echo "  ./start.sh prod"
