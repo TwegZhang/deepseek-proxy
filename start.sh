@@ -63,10 +63,19 @@ gen_certs() {
 
   # Auto-trust on macOS
   if [[ "$OSTYPE" == "darwin"* ]]; then
-    sudo security add-trusted-cert -d -r trustRoot \
-      -k /Library/Keychains/System.keychain "$CERT" 2>/dev/null && \
-    echo "证书已信任（需 sudo 确认）" || \
-    echo "跳过系统信任，Claude Desktop 将无法连接。手动信任：sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain $CERT"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  将证书加入系统信任库（Claude Desktop 要求）"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    if sudo security add-trusted-cert -d -r trustRoot \
+      -k /Library/Keychains/System.keychain "$CERT"; then
+      echo "  ✓ 已信任，Claude Desktop 可直接连接"
+    else
+      echo "  ✗ 失败，手动执行："
+      echo "  sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain $CERT"
+    fi
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
   fi
 
   export DP_HTTPS_CERT="$CERT"
