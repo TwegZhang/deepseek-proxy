@@ -2,7 +2,6 @@ node_modules/
 dist/
 .env
 /deploy/
-/certs/
 SESSION_NOTES.md
 *.swp
 .DS_Store

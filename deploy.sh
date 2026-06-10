@@ -15,7 +15,6 @@ rm -rf "$DEPLOY_DIR"
 mkdir -p "$DEPLOY_DIR"
 cp -r dist "$DEPLOY_DIR/dist"
 cp -r config "$DEPLOY_DIR/config"
-[ -d certs ] && cp -r certs "$DEPLOY_DIR/certs"
 cp package.json package-lock.json start.sh "$DEPLOY_DIR/"
 
 echo "[3/3] Copy .env + install production deps..."
