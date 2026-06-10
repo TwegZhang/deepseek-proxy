@@ -37,26 +37,12 @@ export interface ContentBlockThinking {
   signature: string;
 }
 
-export interface ContentBlockServerToolUse {
-  type: "server_tool_use";
-  id: string;
-  name: string;
-  input: Record<string, unknown>;
-}
-
-export interface ContentBlockWebSearchToolResult {
-  type: "web_search_tool_result";
-  results?: unknown[];
-}
-
 export type ContentBlock =
   | ContentBlockText
   | ContentBlockImage
   | ContentBlockToolUse
   | ContentBlockToolResult
-  | ContentBlockThinking
-  | ContentBlockServerToolUse
-  | ContentBlockWebSearchToolResult;
+  | ContentBlockThinking;
 
 export interface Message {
   role: "user" | "assistant";
@@ -82,7 +68,6 @@ export interface MessagesRequest {
   max_tokens: number;
   temperature?: number;
   top_p?: number;
-  top_k?: number;
   stop_sequences?: string[];
   stream?: boolean;
   tools?: Tool[];
@@ -100,8 +85,6 @@ export interface MessagesRequest {
 export interface Usage {
   input_tokens: number;
   output_tokens: number;
-  cache_creation_input_tokens?: number;
-  cache_read_input_tokens?: number;
 }
 
 export interface MessagesResponse {

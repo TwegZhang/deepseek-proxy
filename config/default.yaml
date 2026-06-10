@@ -60,10 +60,6 @@ plugins:
     enabled: false
     provider: tavily
 
-# 降级链 — DeepSeek 失败时自动切换
-fallback:
-  enabled: false
-
 # 日志
 logging:
   level: info
