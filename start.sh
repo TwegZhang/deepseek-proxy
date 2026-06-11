@@ -20,9 +20,10 @@ EOF
 
 # 部署目录自检测：无 src/ 但 dist/ 存在 → 生产模式
 if [ ! -d "src" ] && [ -d "dist" ]; then
+  export DP_LOG_FILE="${DP_LOG_FILE:-./logs/proxy.log}"
   case "${1:-}" in
     help|--help|-h) show_help; exit 0 ;;
-    *) echo "=== 生产模式 ==="; node dist/index.js ;;
+    *) echo "=== 生产模式 (log: $DP_LOG_FILE) ==="; node dist/index.js ;;
   esac
   exit 0
 fi
