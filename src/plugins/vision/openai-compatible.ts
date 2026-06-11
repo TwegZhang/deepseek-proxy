@@ -57,8 +57,9 @@ export class OpenAIVisionProvider implements VisionProvider {
       hasMessage: !!firstChoice?.message,
       msgKeys: firstChoice?.message ? Object.keys(firstChoice.message as Record<string, unknown>) : [],
     }, "vision: API response detail");
-    const content = (firstChoice?.message as Record<string, unknown>)?.content as string | undefined;
-    if (!content) throw new ProviderError(`Vision API returned empty response. status=${res.status} keys=${JSON.stringify(Object.keys(data))}`, 502);
+    const msg = firstChoice?.message as Record<string, unknown> | undefined;
+    const content = (msg?.content || msg?.reasoning_content) as string | undefined;
+    if (!content) throw new ProviderError(`Vision API returned empty content. content='${msg?.content}' reasoning='${String(msg?.reasoning_content).slice(0,50)}'`, 502);
     return content;
   }
 }
