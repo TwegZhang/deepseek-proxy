@@ -40,7 +40,13 @@ export class VisionPlugin implements Plugin {
 
     const messages = ctx.providerRequest.messages;
 
-    this.logger.debug({ msgCount: messages.length }, "vision: scanning request");
+    // Log what content block types are in the last user message
+    const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+    if (lastUserMsg && Array.isArray(lastUserMsg.content)) {
+      const types = lastUserMsg.content.map((b) => (b as unknown as Record<string, unknown>).type);
+      const firstBlock = lastUserMsg.content[0] as unknown as Record<string, unknown>;
+      this.logger.info({ types, firstBlockKeys: Object.keys(firstBlock).slice(0, 5) }, "vision: last user msg blocks");
+    }
 
     const imageBlocks: Array<{ msgIndex: number; blockIndex: number; source: { data: string; media_type: string } }> = [];
     for (let mi = 0; mi < messages.length; mi++) {
