@@ -35,7 +35,7 @@ describe("parameterFilterMiddleware", () => {
     expect(getProxyWarnings(req as Request)).toContain("thinking.budget_tokens is ignored by upstream");
   });
 
-  it("strips image and document content blocks", () => {
+  it("strips document but keeps image content blocks", () => {
     req.body = {
       model: "test", max_tokens: 100,
       messages: [{
@@ -48,8 +48,9 @@ describe("parameterFilterMiddleware", () => {
     };
     parameterFilterMiddleware(req as Request, {} as Response, next);
 
-    expect(req.body.messages[0].content).toHaveLength(1);
-    expect(req.body.messages[0].content[0].type).toBe("text");
+    expect(req.body.messages[0].content).toHaveLength(2);
+    const types = req.body.messages[0].content.map((c: Record<string, unknown>) => c.type);
+    expect(types).toEqual(["text", "image"]);
   });
 
   it("keeps text, tool_use, tool_result blocks", () => {
