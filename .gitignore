@@ -5,3 +5,4 @@ dist/
 SESSION_NOTES.md
 *.swp
 .DS_Store
+test-qwen/

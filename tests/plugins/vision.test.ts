@@ -55,6 +55,6 @@ describe("OpenAIVisionProvider", () => {
       max_tokens: 100,
     });
 
-    await expect(provider.describe("abc", "image/png")).rejects.toThrow("empty response");
+    await expect(provider.describe("abc", "image/png")).rejects.toThrow("empty content");
   });
 });
