@@ -42,7 +42,7 @@ plugins:
   vision:
     enabled: false
     model: gpt-4o
-    max_tokens: 1024
+    max_tokens: 4096
     # URL 和 API Key 通过 .env 配置:
     #   DP_VISION_BASE_URL=「见下方各厂商示例」
     #   DP_VISION_MODEL=gpt-4o

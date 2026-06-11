@@ -12,7 +12,7 @@ export const defaultConfig: Config = {
   rate_limit: { enabled: true, requests_per_minute: 60, concurrency: 10 },
   providers: { deepseek: { base_url: "https://api.deepseek.com/anthropic", timeout_ms: 120000 } },
   plugins: {
-    vision: { enabled: false, model: "gpt-4o", max_tokens: 512 },
+    vision: { enabled: false, model: "gpt-4o", max_tokens: 4096 },
     search: { enabled: false, provider: "tavily" },
   },
   logging: { level: "info" },
