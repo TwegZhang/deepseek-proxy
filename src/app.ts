@@ -17,6 +17,21 @@ export function createApp(deps: {
 
   app.use((req, _res, next) => {
     deps.logger.info({ method: req.method, path: req.path }, "request");
+    if (req.method === "POST" && req.path === "/v1/messages") {
+      const body = req.body as Record<string, unknown>;
+      const messages = body?.messages as Array<{ role: string; content: unknown }> | undefined;
+      deps.logger.info({
+        model: body?.model,
+        stream: body?.stream,
+        msgCount: messages?.length,
+        msgSummary: messages?.map((m) => ({
+          role: m.role,
+          contentType: Array.isArray(m.content)
+            ? (m.content as Array<Record<string, unknown>>).map((c) => ({ type: c.type, hasSource: !!c.source, hasImageUrl: !!c.image_url, textLen: typeof c.text === "string" ? c.text.length : 0, keys: Object.keys(c).slice(0, 8) }))
+            : typeof m.content === "string" ? `text(${(m.content as string).length})` : typeof m.content,
+        })),
+      }, "messages body");
+    }
     next();
   });
 

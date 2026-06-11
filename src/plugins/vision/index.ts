@@ -43,9 +43,9 @@ export class VisionPlugin implements Plugin {
     // Log what content block types are in the last user message
     const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
     if (lastUserMsg && Array.isArray(lastUserMsg.content)) {
-      const types = lastUserMsg.content.map((b) => (b as unknown as Record<string, unknown>).type);
-      const firstBlock = lastUserMsg.content[0] as unknown as Record<string, unknown>;
-      this.logger.info({ types, firstBlockKeys: Object.keys(firstBlock).slice(0, 5) }, "vision: last user msg blocks");
+      const block = lastUserMsg.content[0] as unknown as Record<string, unknown>;
+      const text = (block.text as string) || "";
+      this.logger.info({ type: block.type, textLen: text.length, textPreview: text.slice(0, 200) }, "vision: last user msg content");
     }
 
     const imageBlocks: Array<{ msgIndex: number; blockIndex: number; source: { data: string; media_type: string } }> = [];
