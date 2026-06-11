@@ -31,6 +31,7 @@ export class OpenAIVisionProvider implements VisionProvider {
         body: JSON.stringify({
           model: this.config.model,
           max_tokens: this.config.max_tokens,
+          thinking_budget: Math.floor(this.config.max_tokens * 0.4),  // reserve 60% for content
           messages: [{
             role: "user",
             content: [
