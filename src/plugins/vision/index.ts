@@ -35,19 +35,33 @@ export class VisionPlugin implements Plugin {
   }
 
   async execute(hook: HookPoint, ctx: HookContext): Promise<HookResult> {
-    if (hook !== HookPoint.PRE_PROCESS || !this.provider) return {};
-    if (!ctx.providerRequest?.messages) return {};
+    if (hook !== HookPoint.PRE_PROCESS || !this.provider) {
+      this.logger.info({ hook, hasProvider: !!this.provider }, "vision: skipped");
+      return {};
+    }
+    if (!ctx.providerRequest?.messages) {
+      this.logger.info("vision: no providerRequest.messages");
+      return {};
+    }
 
     const messages = ctx.providerRequest.messages;
+    this.logger.info({ msgCount: messages.length, firstMsgRole: messages[0]?.role }, "vision: execute start");
 
-    // Log image blocks found during scan
-    for (const msg of messages) {
+    // Log ALL content block types to trace data flow
+    for (let mi = 0; mi < messages.length; mi++) {
+      const msg = messages[mi];
       if (!Array.isArray(msg.content)) continue;
-      for (const block of msg.content) {
-        const b = block as unknown as Record<string, unknown>;
-        if (b.type === "image" && b.source) {
-          const src = b.source as Record<string, unknown>;
-          this.logger.info({ sourceType: src.type, hasData: !!src.data, dataLen: typeof src.data === "string" ? src.data.length : 0, hasUrl: !!src.url, url: src.url }, "vision: found image block");
+      for (let bi = 0; bi < msg.content.length; bi++) {
+        const b = msg.content[bi] as unknown as Record<string, unknown>;
+        if (b.type === "image") {
+          this.logger.info({
+            msgIndex: mi, blockIndex: bi,
+            type: b.type,
+            hasSource: !!b.source,
+            sourceType: (b.source as Record<string, unknown>)?.type,
+            hasData: !!(b.source as Record<string, unknown>)?.data,
+            dataLen: typeof (b.source as Record<string, unknown>)?.data === "string" ? ((b.source as Record<string, unknown>).data as string).length : 0,
+          }, "vision: image block detail");
         }
       }
     }
