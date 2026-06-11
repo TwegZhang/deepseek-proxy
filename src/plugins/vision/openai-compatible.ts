@@ -41,7 +41,7 @@ export class OpenAIVisionProvider implements VisionProvider {
           }],
         }),
       },
-      30_000
+      120_000
     );
 
     if (!res.ok) {
