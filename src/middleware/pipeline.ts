@@ -36,16 +36,17 @@ export function buildMiddlewareStack(deps: PipelineDeps): {
   const handlers: RequestHandler[] = [
     authMiddleware,
     rateLimitMiddleware,
-    parameterFilterMiddleware,
     modelTranslateMiddleware,
     requestTransformMiddleware,
 
-    // Plugin pre-processing
+    // Plugin pre-processing (runs before parameterFilter to see image blocks)
     ((req: Request, _res: Response, next: NextFunction) => {
       const pr = getProviderRequest(req);
       pluginEngine.executeHook(HookPoint.PRE_PROCESS, { req, providerRequest: pr })
         .then(() => next()).catch(next);
     }) as unknown as RequestHandler,
+
+    parameterFilterMiddleware,
 
     // Proxy — calls LLM provider
     ((req: Request, res: Response, next: NextFunction) => {

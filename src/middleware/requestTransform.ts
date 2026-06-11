@@ -7,10 +7,12 @@ export function requestTransformMiddleware(req: Request, _res: Response, next: N
   const body = req.body as MessagesRequest;
   if (!body?.messages) return next();
 
-  const messages: InternalMessage[] = body.messages.map((m: Message) => ({
-    role: m.role,
-    content: typeof m.content === "string" ? [{ type: "text" as const, text: m.content }] : (m.content as ContentBlock[]),
-  }));
+  const messages: InternalMessage[] = body.messages.map((m: Message) => {
+    const content = typeof m.content === "string"
+      ? [{ type: "text" as const, text: m.content }]
+      : m.content;
+    return { role: m.role, content: content as ContentBlock[] };
+  });
 
   let system: string | undefined;
   if (body.system) {

@@ -1,4 +1,5 @@
 import type { Logger } from "../../utils/logger";
+import type { ContentBlock } from "../../models/anthropic";
 import { HookPoint, type HookContext, type HookResult, type Plugin } from "../interface";
 import { OpenAIVisionProvider } from "./openai-compatible";
 import { setProxyWarnings, getProxyWarnings } from "../../middleware/context";
@@ -39,12 +40,16 @@ export class VisionPlugin implements Plugin {
       this.logger.info({ hook, hasProvider: !!this.provider }, "vision: skipped");
       return {};
     }
-    if (!ctx.providerRequest?.messages) {
-      this.logger.info("vision: no providerRequest.messages");
-      return {};
-    }
+    // Read raw req.body to bypass any ContentBlock type filtering
+    const body = (ctx.req as unknown as Record<string, unknown>).body as Record<string, unknown> | undefined;
+    const rawMessages = body?.messages as Array<{ role: string; content: unknown }> | undefined;
+    if (!rawMessages) { this.logger.warn("vision: no messages in body"); return {}; }
+    if (rawMessages.length === 0) { this.logger.warn("vision: empty messages"); return {}; }
 
-    const messages = ctx.providerRequest.messages;
+    const messages = rawMessages.map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: (typeof m.content === "string" ? [{ type: "text", text: m.content }] : m.content) as ContentBlock[],
+    }));
     const blockTypes = new Set<string>();
     for (const msg of messages) {
       if (!Array.isArray(msg.content)) { blockTypes.add("string"); continue; }

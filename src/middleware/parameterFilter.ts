@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import { setProxyWarnings } from "./context";
 
 const UNSUPPORTED_PARAMS = ["top_k", "cache_control", "citations", "service_tier", "mcp_servers", "container"];
-const UNSUPPORTED_CONTENT = ["image", "document", "search_result", "container_upload", "redacted_thinking"];
+const UNSUPPORTED_CONTENT = ["document", "search_result", "container_upload", "redacted_thinking"];
 
 export function parameterFilterMiddleware(req: Request, _res: Response, next: NextFunction) {
   const body = req.body;
