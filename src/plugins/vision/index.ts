@@ -57,22 +57,23 @@ export class VisionPlugin implements Plugin {
     }
     this.logger.warn({ msgCount: messages.length, blockTypes: [...blockTypes] }, "vision: block types in request");
 
+    // Only process images from the LAST user message (most recent paste)
+    let lastUserMsgIdx = -1;
+    for (let mi = messages.length - 1; mi >= 0; mi--) {
+      if (messages[mi].role === "user") { lastUserMsgIdx = mi; break; }
+    }
+
     const imageBlocks: Array<{ msgIndex: number; blockIndex: number; source: { data: string; media_type: string } }> = [];
-    for (let mi = 0; mi < messages.length; mi++) {
-      const msg = messages[mi];
-      if (!Array.isArray(msg.content)) continue;
+    const msg = lastUserMsgIdx >= 0 ? messages[lastUserMsgIdx] : null;
+    if (msg && Array.isArray(msg.content)) {
       for (let bi = 0; bi < msg.content.length; bi++) {
         const block = msg.content[bi] as unknown as Record<string, unknown>;
         if (block.type === "image" && block.source) {
           const source = block.source as { data?: string; media_type?: string };
-          if (source?.data) {
-            imageBlocks.push({ msgIndex: mi, blockIndex: bi, source: { data: source.data, media_type: source.media_type || "image/png" } });
-          }
-        } else if (block.type === "image_url" && block.image_url) {
-          const imageUrl = (block.image_url as { url?: string }).url || "";
-          const match = imageUrl.match(/^data:(image\/[\w+-]+);base64,(.+)$/);
-          if (match) {
-            imageBlocks.push({ msgIndex: mi, blockIndex: bi, source: { data: match[2], media_type: match[1] } });
+          if (source?.data && source.data.length > 100) {
+            imageBlocks.push({ msgIndex: lastUserMsgIdx, blockIndex: bi, source: { data: source.data, media_type: source.media_type || "image/png" } });
+          } else {
+            this.logger.warn({ dataLen: source?.data?.length || 0 }, "vision: skipping image with invalid data");
           }
         }
       }

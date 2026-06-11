@@ -49,9 +49,10 @@ export class OpenAIVisionProvider implements VisionProvider {
     }
 
     const data = (await res.json()) as Record<string, unknown>;
+    this.logger.warn({ status: res.status, model: this.config.model, dataKeys: Object.keys(data).slice(0, 10), hasChoices: !!data?.choices }, "vision: API response");
     const choices = data?.choices as Array<{ message?: { content?: string } }> | undefined;
     const content = choices?.[0]?.message?.content;
-    if (!content) throw new ProviderError("Vision API returned empty response", 502);
+    if (!content) throw new ProviderError(`Vision API returned empty response. status=${res.status} keys=${JSON.stringify(Object.keys(data))}`, 502);
     return content;
   }
 }
