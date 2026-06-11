@@ -40,6 +40,8 @@ export class VisionPlugin implements Plugin {
 
     const messages = ctx.providerRequest.messages;
 
+    this.logger.debug({ msgCount: messages.length }, "vision: scanning request");
+
     const imageBlocks: Array<{ msgIndex: number; blockIndex: number; source: { data: string; media_type: string } }> = [];
     for (let mi = 0; mi < messages.length; mi++) {
       const msg = messages[mi];
@@ -61,7 +63,10 @@ export class VisionPlugin implements Plugin {
       }
     }
 
-    if (imageBlocks.length === 0) return {};
+    if (imageBlocks.length === 0) {
+      this.logger.debug("vision: no image blocks found");
+      return {};
+    }
 
     this.logger.info({ count: imageBlocks.length }, "vision: processing images");
 
