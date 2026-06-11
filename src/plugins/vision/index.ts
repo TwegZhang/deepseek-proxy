@@ -40,12 +40,16 @@ export class VisionPlugin implements Plugin {
 
     const messages = ctx.providerRequest.messages;
 
-    // Log what content block types are in the last user message
-    const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
-    if (lastUserMsg && Array.isArray(lastUserMsg.content)) {
-      const block = lastUserMsg.content[0] as unknown as Record<string, unknown>;
-      const text = (block.text as string) || "";
-      this.logger.info({ type: block.type, textLen: text.length, textPreview: text.slice(0, 200) }, "vision: last user msg content");
+    // Log image blocks found during scan
+    for (const msg of messages) {
+      if (!Array.isArray(msg.content)) continue;
+      for (const block of msg.content) {
+        const b = block as unknown as Record<string, unknown>;
+        if (b.type === "image" && b.source) {
+          const src = b.source as Record<string, unknown>;
+          this.logger.info({ sourceType: src.type, hasData: !!src.data, dataLen: typeof src.data === "string" ? src.data.length : 0, hasUrl: !!src.url, url: src.url }, "vision: found image block");
+        }
+      }
     }
 
     const imageBlocks: Array<{ msgIndex: number; blockIndex: number; source: { data: string; media_type: string } }> = [];
