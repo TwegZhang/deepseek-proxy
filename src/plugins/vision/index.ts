@@ -99,13 +99,14 @@ export class VisionPlugin implements Plugin {
       })
     );
 
-    // Apply results back to messages
+    // Apply results back to messages and write back to ctx for proxy router
     for (const r of results) {
       if (r.text) {
-        this.logger.debug({ description: r.text }, "vision: image described");
+        this.logger.warn({ description: r.text.slice(0, 100) }, "vision: image described");
         messages[r.msgIndex].content[r.blockIndex] = { type: "text", text: `[Image: ${r.text}]` };
       }
     }
+    if (ctx.providerRequest) ctx.providerRequest.messages = messages;
 
     if (warnings.length) {
       const existing = getProxyWarnings(ctx.req) || [];
