@@ -45,26 +45,12 @@ export class VisionPlugin implements Plugin {
     }
 
     const messages = ctx.providerRequest.messages;
-    this.logger.info({ msgCount: messages.length, firstMsgRole: messages[0]?.role }, "vision: execute start");
-
-    // Log ALL content block types to trace data flow
-    for (let mi = 0; mi < messages.length; mi++) {
-      const msg = messages[mi];
-      if (!Array.isArray(msg.content)) continue;
-      for (let bi = 0; bi < msg.content.length; bi++) {
-        const b = msg.content[bi] as unknown as Record<string, unknown>;
-        if (b.type === "image") {
-          this.logger.info({
-            msgIndex: mi, blockIndex: bi,
-            type: b.type,
-            hasSource: !!b.source,
-            sourceType: (b.source as Record<string, unknown>)?.type,
-            hasData: !!(b.source as Record<string, unknown>)?.data,
-            dataLen: typeof (b.source as Record<string, unknown>)?.data === "string" ? ((b.source as Record<string, unknown>).data as string).length : 0,
-          }, "vision: image block detail");
-        }
-      }
+    const blockTypes = new Set<string>();
+    for (const msg of messages) {
+      if (!Array.isArray(msg.content)) { blockTypes.add("string"); continue; }
+      for (const block of msg.content) blockTypes.add(((block as unknown) as Record<string, unknown>).type as string || "?");
     }
+    this.logger.warn({ msgCount: messages.length, blockTypes: [...blockTypes] }, "vision: block types in request");
 
     const imageBlocks: Array<{ msgIndex: number; blockIndex: number; source: { data: string; media_type: string } }> = [];
     for (let mi = 0; mi < messages.length; mi++) {
@@ -88,7 +74,7 @@ export class VisionPlugin implements Plugin {
     }
 
     if (imageBlocks.length === 0) {
-      this.logger.debug("vision: no image blocks found");
+      this.logger.warn("vision: no image blocks found in any message");
       return {};
     }
 
