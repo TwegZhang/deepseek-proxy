@@ -72,7 +72,8 @@ export class DeepSeekProvider implements LLMProvider {
   }
 
   async *sendMessageStream(req: ProviderRequest): AsyncIterable<ProviderStreamChunk> {
-    const body = this.buildRequestBody(req);
+    // 必须显式 stream:true，否则上游返回 JSON、parseSSEStream 解析不到任何事件
+    const body = { ...this.buildRequestBody(req), stream: true };
     const res = await this.fetchAPI("/v1/messages", body);
 
     if (!res.ok) {
