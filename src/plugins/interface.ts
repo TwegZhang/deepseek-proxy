@@ -13,6 +13,10 @@ export interface HookContext {
   providerResponse?: ProviderResponse;
   streamChunk?: ProviderStreamChunk;
   searchReentry?: boolean;
+  /** POST_CALL 插件置 true 请求 pipeline 重入供应商（每轮循环前由 pipeline 重置） */
+  reenter?: boolean;
+  /** vision 按需二次识别已进行的轮数（上限见 vision 插件） */
+  visionReentryCount?: number;
 }
 
 export interface HookResult {

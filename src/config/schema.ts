@@ -44,7 +44,13 @@ export const ConfigSchema = z.object({
     vision: z.object({
       enabled: z.boolean().default(false),
       model: z.string().default("gpt-4o"),
-      max_tokens: z.number().default(512),
+      max_tokens: z.number().default(4096),
+      // thinking 模型（Qwen/DeepSeek 等）的推理 token 上限，防止推理吃光 max_tokens；不设则不发送
+      thinking_budget: z.number().optional(),
+      // 自定义转录 prompt 模板，需含 {USER_CONTEXT} 占位符；不设则用内置结构化转录模板
+      prompt: z.string().optional(),
+      // 按需二次识别：注入 analyze_image 工具，DeepSeek 可带着分析需求让视觉模型重新看图
+      on_demand_analysis: z.boolean().default(true),
     }),
     search: z.object({
       enabled: z.boolean().default(false),

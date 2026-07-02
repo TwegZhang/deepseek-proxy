@@ -43,6 +43,16 @@ plugins:
     enabled: false
     model: gpt-4o
     max_tokens: 4096
+    # thinking 模型（Qwen/DeepSeek 等）需限制推理 token，否则推理可能吃光 max_tokens 导致空回复:
+    # thinking_budget: 1638   # 也可用 .env: DP_VISION_THINKING_BUDGET=1638
+    # 自定义转录 prompt 模板（可选），需含 {USER_CONTEXT} 占位符（会被替换为用户提问上下文）。
+    # 不设则用内置结构化转录模板（逐字转录+布局+图表数据+不确定性标注）。
+    # 注意 token 预算：结构化转录输出较长；max_tokens 4096 - thinking_budget 1638 ≈ 2400 内容余量，
+    # 若日志出现 finish_reason=length 截断，将 max_tokens 调高至 8192。
+    # prompt: |
+    #   You are an image-transcription engine...
+    #   {USER_CONTEXT}
+    #   ...
     # URL 和 API Key 通过 .env 配置:
     #   DP_VISION_BASE_URL=「见下方各厂商示例」
     #   DP_VISION_MODEL=gpt-4o

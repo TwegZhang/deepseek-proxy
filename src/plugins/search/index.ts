@@ -73,7 +73,8 @@ export class SearchPlugin implements Plugin {
     const totalResults = results.reduce((sum, r) => sum + r.results.length, 0);
     this.logger.info({ totalResults, queries: results.map((r) => r.results.length) }, "search: results injected, re-entering");
 
-    ctx.searchReentry = true;
+    ctx.searchReentry = true; // one-shot guard（本插件重入后不再拦截）
+    ctx.reenter = true; // 请求 pipeline 重入供应商
     return { modified: true };
   }
 }

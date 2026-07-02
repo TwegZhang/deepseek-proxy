@@ -24,3 +24,11 @@ export function getOriginalModel(req: Request): string | undefined { return get(
 
 export function setProxyWarnings(req: Request, warnings: string[]): void { get(req)._proxyWarnings = warnings; }
 export function getProxyWarnings(req: Request): string[] | undefined { return get(req)._proxyWarnings as string[] | undefined; }
+
+// Vision 按需二次识别：原图暂存（随请求 WeakMap 释放）+ 流式 SSE 回放标记
+export interface VisionImage { data: string; media_type: string; }
+export function setVisionImages(req: Request, v: VisionImage[]): void { get(req)._visionImages = v; }
+export function getVisionImages(req: Request): VisionImage[] | undefined { return get(req)._visionImages as VisionImage[] | undefined; }
+
+export function setVisionSSEReplay(req: Request, v: boolean): void { get(req)._visionSSEReplay = v; }
+export function getVisionSSEReplay(req: Request): boolean { return get(req)._visionSSEReplay === true; }
